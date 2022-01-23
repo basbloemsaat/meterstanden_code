@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>daily</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+    svg.chart {
+        width: 100%;
+        height: 20em;
+    }
+
+    g.xaxis,
+    g.yaxis {
+        shape-rendering: crispEdges;
+    }
+
+    g.yaxis path.domain {
+        stroke-opacity: 0;
+    }
+
+    path.line {
+        fill: none;
+        stroke: grey;
+        stroke-width: 1.5;
+    }
+
+    path.area {
+        fill: lightgrey;
+        /*stroke: grey;
+        stroke-width: 1.5;*/
+    }
+
+    path.rating_raw {
+        stroke: gray;
+        opacity: 0.2
+    }
+
+    g.tick line {
+        stroke: lightgrey;
+        stroke-opacity: 0.3;
+        shape-rendering: crispEdges;
+    }
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <h1>Daily</h1>
+        <div class="row">
+            <div class="col-lg-6">
+                <h2>Stand cumulatief</h2>
+                <svg id="stand_cum" class="chart"></svg>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-lg-6">
+                <h2>Stand tarief 1</h2>
+                <svg id="stand_t1" class="chart"></svg>
+            </div>
+            <div class="col-lg-6">
+                <h2>Stand tarief 2</h2>
+                <svg id="stand_t2" class="chart"></svg>
+            </div>
+        </div>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="./bbdataviz.js"></script>
+    <script>
+    let p = bbdataviz.url_params();
+    let d = p['date'];
+    let draw = function(data) {
+        var keys = data.columns.slice(1)
+        let mindate = new Date(9999999999999)
+        let maxdate = new Date(1)
+
+
+        let charts = {
+            'stand_t1': {
+                'id': '1-0:1.8.1',
+                'min': 9999999999999,
+                'max': 0,
+            },
+            'stand_t2': {
+                'id': '1-0:1.8.2',
+                'min': 9999999999999,
+                'max': 0,
+            },
+        }
+
+        for (let i = 0; i < data.length; i++) {
+            let m = data[i];
+
+            m['date'] = new Date(m['timestamp'] * 1000);
+
+            mindate = m['date'] > mindate ? mindate : m['date'];
+            maxdate = m['date'] < maxdate ? maxdate : m['date'];
+
+            for (chart_id in charts) {
+                let chart = charts[chart_id];
+                chart['min'] = m[chart['id']] > chart['min'] ? chart['min'] : parseFloat(m[chart['id']]);
+                chart['max'] = m[chart['id']] < chart['max'] ? chart['max'] : parseFloat(m[chart['id']]);
+            }
+
+        }
+
+        {
+            let cumulative_min = charts['stand_t1']['min'] + charts['stand_t2']['min'];
+            let cumulative_max = charts['stand_t1']['max'] + charts['stand_t2']['max'];
+
+            let zeroed = data.map(function(e) {
+                let retval = {
+                    'date': e.date,
+                }
+
+                for (chart_id in charts) {
+                    let chart = charts[chart_id];
+                    retval[chart['id']] = parseFloat(e[chart['id']]) - chart['min'];
+                }
+
+                return retval;
+            })
+
+            console.log(zeroed);
+
+            let chart = new bbdataviz.xyChart(d3.select('svg#stand_cum'));
+            let y_scale = d3.scaleLinear()
+                .domain([cumulative_min, cumulative_max])
+                .range([chart.c_height, 0])
+                .clamp(true)
+            chart.y_axis.call(
+                d3.axisLeft(y_scale)
+                .tickSize(-chart.c_width)
+            )
+            let x_scale = d3.scaleTime()
+                .domain([mindate, maxdate])
+                .range([0, chart.c_width])
+            chart.x_axis.call(
+                d3.axisBottom(x_scale.nice())
+            )
+
+            var keys = [charts['stand_t1']['id'], charts['stand_t2']['id'], ]
+            console.log(keys);
+            var color = d3.scaleOrdinal()
+                .domain(keys)
+                .range(['#e41a1c', '#377eb8', '#4daf4a', '#984ea3', '#ff7f00', '#ffff33', '#a65628', '#f781bf'])
+            var stackedData = d3.stack()
+                // .offset(d3.stackOffsetWiggle)
+                .keys(keys)
+                (zeroed);
+
+            console.log(stackedData);
+
+
+            let area = d3.area()
+                .x(function(d) {
+                    return x_scale(d.data.date)
+                })
+                .y0(function(d) { return y_scale(d[0] + cumulative_min) })
+                .y1(function(d) { return y_scale(d[1] + cumulative_min) })
+
+            let layer_area = chart.content.selectAll('path').data(stackedData);
+
+            layer_area.enter()
+                .append('path')
+                .style("fill", function(d) { return color(d.key); })
+                .classed('area', true)
+                .classed('punten', true)
+                .attr("d", area);
+
+        }
+
+        for (chart_id in charts) {
+            let def = charts[chart_id];
+
+
+
+            let chart = new bbdataviz.xyChart(d3.select('svg#' + chart_id));
+            let y_scale = d3.scaleLinear()
+                .domain([def['min'], def['max']])
+                .range([chart.c_height, 0])
+            chart.y_axis.call(
+                d3.axisLeft(y_scale)
+                .tickSize(-chart.c_width)
+            )
+
+            let x_scale = d3.scaleTime()
+                .domain([mindate, maxdate])
+                .range([0, chart.c_width])
+            chart.x_axis.call(
+                d3.axisBottom(x_scale.nice())
+            )
+
+            let curve = d3.line()
+                // .curve(d3.curveLinear)
+                .x(function(d) {
+                    return x_scale(d.date)
+                })
+                .y(function(d) {
+                    return y_scale(d[def['id']])
+                })
+            let area = d3.area()
+                .x(function(d) {
+                    return x_scale(d.date)
+                })
+                .y0(y_scale(def['min']))
+                .y1(function(d) {
+                    return y_scale(d[def['id']])
+                })
+
+            // let chart_curve = chart.content
+            //     .append('path')
+            //     .classed('line', true)
+            //     .classed('punten', true)
+            //     .attr("d", function(d) {
+            //         return curve(data);
+            //     });
+
+            let chart_area = chart.content
+                .append('path')
+                .classed('area', true)
+                .classed('punten', true)
+                .attr("d", function(d) {
+                    return area(data);
+                });
+
+        }
+
+
+
+    }
+
+    d3.csv('./data/daily/' + d + '.csv')
+        .then(
+            function(data) {
+                draw(data);
+            })
+    </script>
+</body>
+
+</html>

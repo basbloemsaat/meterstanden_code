@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>directory</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <style>
+    </style>
+</head>
+
+<body>
+    <div class="container-fluid">
+        <div class="row">
+            <div class="col-lg-12">
+                <h3>Dailies</h3>
+                <table id="dailies" class="table table-hover table-sm table-striped">
+                    <thead></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    <script src="https://d3js.org/d3.v5.min.js"></script>
+    <script src="./bbdataviz.js"></script>
+    <script>
+    let draw = function(data) {
+        console.log(data);
+        let dailyrows = d3.select('table#dailies').select('tbody')
+            .selectAll('tr')
+            .data(data['dailies']);
+
+        let dnewrows = dailyrows.enter().append('tr');
+        dnewrows.append('td')
+        .append('a')
+        .attr('href', function(d) {
+            return 'daily.html?date=' + d ;
+        })
+        .text(function(d) {
+            return d;
+        })
+    }
+
+    d3.json('./data/index.json')
+        .then(
+            function(data) {
+                draw(data);
+            })
+    </script>
+</body>
+
+</html>
