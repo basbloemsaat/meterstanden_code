@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
-cd /home/bas/src/meterstanden
+cd /home/bas/share/src/meterstanden
 git pull
-git add docs/data/.
+git add data/.
 git commit -m data
 git push origin master
 

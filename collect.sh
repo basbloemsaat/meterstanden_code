@@ -2,4 +2,4 @@
 
 export PATH=~/.pyenv/shims:~/.pyenv/bin:"$PATH"
 
-python ~/src/meterstanden/scripts/leesmeter.py
+python ~/share/src/meterstanden_code/scripts/leesmeter.py

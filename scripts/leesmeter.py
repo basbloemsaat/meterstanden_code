@@ -58,9 +58,5 @@ except:
 
 res.save_to_csv()
 
-# # doe iets met res (vertalen en aan csv appenden)
-
-# line = slimme_meter.raw_to_csv_line(res)
-# pprint(line)
 
 

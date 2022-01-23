@@ -66,7 +66,7 @@ class SlimmeMeterData:
 
         filepath = os.path.abspath(os.path.join(
             os.path.dirname(__file__),
-            "../docs/data/daily/",
+            "../../meterstanden/data/daily/",
             datestring + '.csv'
         ))
 
