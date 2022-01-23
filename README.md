@@ -1,2 +1,2 @@
-# meterstanden_data
-verzamel de data voor de meterstanden in een private repo
+# meterstanden_code
+Code voor het verzamelen en verwerken van de meterstanden
